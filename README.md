@@ -2,8 +2,6 @@
 
 FitTrack is a web application designed to help users track their fitness progress and goals. Whether you're a seasoned athlete or just starting your fitness journey, FitTrack provides the tools you need to monitor your workouts, nutrition, and overall health.
 
-
-
 ## Features
 - Workout Tracking: Log your workouts with ease, including details such as exercise type, duration, and intensity.
 - Goal Setting: Set personalized fitness goals and track your progress over time to stay motivated and on track.
