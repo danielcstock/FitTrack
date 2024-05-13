@@ -8,12 +8,12 @@ export default function Form(){
     function handleSubmit(e){ 
       const name = e.name;
       const times = e.times;
-      const Weight = e.weight;
+      const weight = e.weight;
 
-      axios.post("http://127.0.0.1:8080", {
-        Name: name,
-        TImes: times,
-        weight: Weight
+      axios.post("http://localhost:8080/exercise", {
+        Name: exercise.name,
+        Times: parseInt(exercise.times),
+        Weight: parseInt(exercise.weight)
       })     
       e.preventDefault();
       console.log(exercise);
