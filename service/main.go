@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -71,17 +72,22 @@ func postExercises(c *gin.Context) {
 	c.IndentedJSON(http.StatusCreated, newExercise)
 }
 
-func enableCors(w *http.ResponseWriter) {
-	header := (*w).Header()
-	header.Add("Access-Control-Allow-Origin", "*")
-	header.Add("Access-Control-Allow-Methods", "DELETE, POST, GET, OPTIONS")
-	header.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
-}
-
 func main() {
-	enableCors(&w)
-
 	router := gin.Default()
+
+	// router.Use(cors.New(cors.Config{
+	// 	AllowOrigins:     []string{"*"},
+	// 	AllowMethods:     []string{"PUT", "PATCH"},
+	// 	AllowHeaders:     []string{"Origin"},
+	// 	ExposeHeaders:    []string{"Content-Length"},
+	// 	AllowCredentials: true,
+	// 	AllowOriginFunc: func(origin string) bool {
+	// 		return origin == "https://github.com"
+	// 	},
+	// 	MaxAge: 12 * time.Hour,
+	// }))
+	router.Use(cors.Default())
+
 	router.GET("/exercise", getExercises)
 	router.POST("/exercise", postExercises)
 
