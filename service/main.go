@@ -1,40 +1,42 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
-	"os"
-	"strings"
-	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 type exercise struct {
-	Name   string    `json: "name"`
-	Times  int       `json: "times"`
-	Weight int       `json: "weight"`
-	Date   time.Time `json: "date"`
-}
-
-var series = []exercise{
-	{Name: "Agachamento livre", Times: 12, Weight: 14, Date: time.Now().UTC()},
-	{Name: "Agachamento", Times: 12, Weight: 14, Date: time.Now().UTC()},
+	gorm.Model
+	Name   string `json: "name"`
+	Times  int    `json: "times"`
+	Weight int    `json: "weight"`
 }
 
 func getExercises(c *gin.Context) {
-	file, _ := os.Open("track.json")
-	b, _ := io.ReadAll(file)
+	db, err := gorm.Open(sqlite.Open("fittrack.db"), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
 
-	var sb strings.Builder
-	sb.WriteString("[")
-	sb.WriteString(string(b))
-	sb.WriteString("]")
+	var series []exercise
+	db.Find(&series).Order("created_at desc")
 
-	json.Unmarshal([]byte(sb.String()), &series)
+	c.IndentedJSON(http.StatusOK, series)
+}
+
+func getExerciseByName(c *gin.Context) {
+	db, err := gorm.Open(sqlite.Open("fittrack.db"), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	name := c.Query("name")
+	var series exercise
+	db.First(&series, "name like ?", "%"+name+"%").Order("created_at desc")
 
 	c.IndentedJSON(http.StatusOK, series)
 }
@@ -46,50 +48,32 @@ func postExercises(c *gin.Context) {
 		return
 	}
 
-	newExercise.Date = time.Now().UTC()
-
-	b, err := json.Marshal(newExercise)
+	db, err := gorm.Open(sqlite.Open("fittrack.db"), &gorm.Config{})
 	if err != nil {
-		fmt.Printf("Error: %s", err)
-		return
+		panic("failed to connect database")
 	}
-
-	f, err := os.OpenFile("track.json", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		panic(err)
-	}
-
-	defer f.Close()
-
-	var sb strings.Builder
-	sb.WriteString(",\n")
-	sb.WriteString(string(b))
-
-	if _, err = f.WriteString(sb.String()); err != nil {
-		panic(err)
-	}
+	db.Create(&exercise{
+		Name:   newExercise.Name,
+		Times:  newExercise.Times,
+		Weight: newExercise.Weight,
+	})
 
 	c.IndentedJSON(http.StatusCreated, newExercise)
 }
 
 func main() {
 	router := gin.Default()
-
-	// router.Use(cors.New(cors.Config{
-	// 	AllowOrigins:     []string{"*"},
-	// 	AllowMethods:     []string{"PUT", "PATCH"},
-	// 	AllowHeaders:     []string{"Origin"},
-	// 	ExposeHeaders:    []string{"Content-Length"},
-	// 	AllowCredentials: true,
-	// 	AllowOriginFunc: func(origin string) bool {
-	// 		return origin == "https://github.com"
-	// 	},
-	// 	MaxAge: 12 * time.Hour,
-	// }))
 	router.Use(cors.Default())
 
-	router.GET("/exercise", getExercises)
+	db, err := gorm.Open(sqlite.Open("fittrack.db"), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+	db.AutoMigrate(&exercise{})
+
+	router.GET("/exercises", getExercises)
+	router.GET("/exercise", getExerciseByName)
 	router.POST("/exercise", postExercises)
 
-	router.Run("localhost:8080")
+	router.Run("localhost:8081")
 }
