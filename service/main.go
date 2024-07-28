@@ -38,10 +38,10 @@ func getExerciseByName(c *gin.Context) {
 	var series exercise
 	db.First(&series, "name like ?", "%"+name+"%").Order("created_at desc")
 
-	c.IndentedJSON(http.StatusOK, series)
+	c.IndentedJSON(http.StatusFound, series)
 }
 
-func postExercises(c *gin.Context) {
+func postExercise(c *gin.Context) {
 	var newExercise exercise
 
 	if err := c.BindJSON(&newExercise); err != nil {
@@ -61,6 +61,42 @@ func postExercises(c *gin.Context) {
 	c.IndentedJSON(http.StatusCreated, newExercise)
 }
 
+func updateExercise(c *gin.Context) {
+	var newExercise exercise
+
+	if err := c.BindJSON(&newExercise); err != nil {
+		return
+	}
+
+	db, err := gorm.Open(sqlite.Open("fittrack.db"), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	db.Model(&newExercise).Updates(exercise{
+		Name:   newExercise.Name,
+		Times:  newExercise.Times,
+		Weight: newExercise.Weight,
+	})
+
+	c.IndentedJSON(http.StatusOK, newExercise)
+}
+
+func deleteExercise(c *gin.Context) {
+	db, err := gorm.Open(sqlite.Open("fittrack.db"), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	id := c.Query("id")
+	var exercise exercise
+	db.First(&exercise, "id = ?", id)
+
+	db.Delete(&exercise)
+
+	c.IndentedJSON(http.StatusOK, nil)
+}
+
 func main() {
 	router := gin.Default()
 	router.Use(cors.Default())
@@ -73,7 +109,9 @@ func main() {
 
 	router.GET("/exercises", getExercises)
 	router.GET("/exercise", getExerciseByName)
-	router.POST("/exercise", postExercises)
+	router.POST("/exercise", postExercise)
+	router.PUT("/exercise", updateExercise)
+	router.DELETE("/exercise", deleteExercise)
 
 	router.Run("localhost:8081")
 }
